@@ -132,5 +132,11 @@ return [
             'path' => storage_path('logs/background_jobs_errors.log'),
             'level' => 'error',
         ],
+
+        'background_jobs_status' => [
+            'driver' => 'single',
+            'path' => storage_path('logs/background_jobs_status.log'),
+            'level' => 'info',
+        ],
     ],
 ];

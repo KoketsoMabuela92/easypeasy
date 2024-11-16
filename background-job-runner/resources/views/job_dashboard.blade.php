@@ -1,11 +1,20 @@
 @extends('layouts.app')
 
-@section('title', 'Job Dashboard')
+@section('title', 'Koketso Mabuela | Job Dashboard')
 
 @section('content')
 <div class="container mt-5">
     <h2 class="text-center mb-4 text-primary">Job Dashboard</h2>
 
+    <!-- Filter Section (optional, could add more filters here) -->
+    <div class="mb-3 text-center">
+        <a href="{{ route('dashboard.index', ['status' => 'all']) }}" class="btn btn-info btn-sm">All Jobs</a>
+        <a href="{{ route('dashboard.index', ['status' => 'running']) }}" class="btn btn-warning btn-sm">Running</a>
+        <a href="{{ route('dashboard.index', ['status' => 'completed']) }}" class="btn btn-success btn-sm">Completed</a>
+        <a href="{{ route('dashboard.index', ['status' => 'failed']) }}" class="btn btn-danger btn-sm">Failed</a>
+    </div>
+
+    <!-- Job Table -->
     <table id="jobsTable" class="table table-bordered table-striped table-hover">
         <thead class="bg-dark text-white">
         <tr>
@@ -30,10 +39,17 @@
             <td>{{ $jobLog->priority }}</td>
             <td>{{ $jobLog->retry_count }}</td>
             <td>
+                <!-- Cancel button for running jobs -->
                 @if ($jobLog->status === 'running')
-                <form action="{{ route('cancel-job', $jobLog->id) }}" method="POST" class="d-inline">
+                <form action="{{ route('dashboard.cancel', $jobLog->id) }}" method="POST" class="d-inline">
                     @csrf
                     <button type="submit" class="btn btn-danger btn-sm">Cancel</button>
+                </form>
+                @elseif ($jobLog->status === 'failed')
+                <!-- Retry button for failed jobs -->
+                <form action="{{ route('dashboard.retry-job', $jobLog->id) }}" method="POST" class="d-inline">
+                    @csrf
+                    <button type="submit" class="btn btn-warning btn-sm">Retry</button>
                 </form>
                 @else
                 <button class="btn btn-secondary btn-sm" disabled>No Actions</button>
@@ -47,6 +63,11 @@
         @endforelse
         </tbody>
     </table>
+
+    <!-- Pagination Links -->
+    <div class="mt-3">
+        {{ $jobLogs->links() }}
+    </div>
 </div>
 @endsection
 
