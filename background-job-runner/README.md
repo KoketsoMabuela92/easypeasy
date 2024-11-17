@@ -1,143 +1,155 @@
-Background Job Runner for Laravel
-This is a custom background job runner system for Laravel that allows you to dispatch jobs with configurable retry attempts, delays, priorities, and timeouts. It enhances the default Laravel job queue system by adding more control over job execution, making it easier to handle asynchronous tasks, failures, retries, and priorities.
+# EasyPeasy Background Job Runner
 
-Features
-Retry Attempts and Delays: Configure how many times a job should be retried and the delay between each retry.
-Job Priorities: Control the order of job execution by setting priorities.
-Timeout Configuration: Set a maximum time limit for job execution.
-Dashboard: Monitor the job status, retry attempts, and perform actions like canceling or retrying jobs.
-Queue Support: Dispatch jobs to various queues and connections (e.g., sync, redis).
-Table of Contents
-Installation
-Usage
-Running Jobs
-Configuring Retry Attempts, Delays, and Priorities
-Advanced Features
-Security Considerations
-Assumptions and Limitations
-Contributing
-Installation
-Install Laravel: Make sure you have Laravel set up in your project.
+EasyPeasy is a custom background job runner built with Laravel. It allows you to run PHP classes as independent jobs, bypassing Laravel's built-in queue system. This project focuses on flexibility, error handling, and providing advanced features for monitoring and managing background jobs.
 
-Install Necessary Packages:
-If you haven't already, install the necessary queue package (redis, database, etc.) based on your preference.
+---
 
-bash
-Copy code
-composer require illuminate/queue
-Define the runBackgroundJob function:
-Add the runBackgroundJob function to a helper or job service class within your Laravel application.
+## Features
+
+- **Custom Job Runner:** Execute PHP classes as standalone jobs.
+- **Retry Mechanism:** Automatically retry failed jobs based on configurable logic.
+- **Timeout Support:** Handle long-running jobs with customizable timeouts.
+- **Prioritization:** Assign priorities to jobs for controlled execution order.
+- **Logging:** Comprehensive logging for job dispatch, retries, and completion.
+- **Extensible Design:** Add more features, such as a web-based dashboard, with ease.
+
+---
+
+## Requirements
+
+- **PHP**: 8.1 or higher
+- **Laravel**: 9.x or higher
+- **Composer**: Latest version
+- **Database**: MySQL, PostgreSQL, or any database supported by Laravel
+
+---
+
+## Installation
+
+1. **Clone the Repository**:
+   ```bash
+   git clone https://github.com/KoketsoMabuela92/easypeasy.git
+   cd easypeasy
+
+2. **Install Dependencies**:
+   ```bash
+   composer install
+
+
+3. **Setup Up Environment: Create a `.env` file in the project root**:
+   ```bash
+   cp .env.example .env
+Update the `.env` file with your database and other configurations.
+
+4. **Generate Application Key**:
+   ```bash
+   php artisan key:generate
+
+5. **Run Migrations**:
+   ```bash
+   php artisan migrate
+
+---
+## Usage
+
+1. **Running Jobs**
+
+You can create and dispatch custom jobs using the runBackgroundJob method.
 
 Example:
 
-php
-Copy code
-use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Bus;
+```bash
+    use App\Jobs\GenerateReportJob;
+    
+    // Dispatch a simple job
+    runBackgroundJob(GenerateReportJob::class);
+    
+    // Dispatch a job with parameters
+    runBackgroundJob(GenerateReportJob::class, null, ['param1' => 'value', 'param2' => 42]);
+    
+    // Dispatch a job with retry logic
+    runBackgroundJob(GenerateReportJob::class, null, [], priority: 1, retryCount: 3, retryDelay: 5);
+```
 
-function runBackgroundJob($jobClass, $methodName = null, $parameters = [], $priority = 1, $retryCount = 3, $retryDelay = 5, $timeout = 60)
-{
-$priority = $priority ?: 1; // Default priority is 1 (low priority)
-$retryCount = $retryCount ?: 3; // Default retry count
-$retryDelay = $retryDelay ?: 5; // Default retry delay (in seconds)
+2. **Logging**
 
-    Bus::dispatch((new $jobClass(...$parameters))
-        ->onQueue('default')
-        ->onConnection('sync')
-        ->withChain([
-            new RetryJob($jobClass, $methodName, $parameters, $retryCount, $retryDelay, $timeout)
-        ])
-        ->delay(now()->addSeconds($retryDelay))
-        ->timeout($timeout)
-        ->priority($priority)
-    );
-}
-Usage
-Running Jobs
-You can dispatch jobs from anywhere in your application. Here's how to run different classes and methods as background jobs:
+   Logs for dispatched jobs, retries, and completions are available in the Laravel log files (storage/logs/laravel.log) & (storage/logs/background_jobs_status.log) and also for job errors, in (storage/logs/background_jobs_errors.log).
 
-Example 1: Run a Simple Job
-To dispatch a simple job without parameters:
 
-php
-Copy code
-runBackgroundJob(SomeJob::class);
-Example 2: Run a Job with Parameters
-If your job requires parameters, pass them as an array:
 
-php
-Copy code
-runBackgroundJob(SomeJob::class, 'handle', ['param1' => $value, 'param2' => $value2]);
-Here, 'handle' is the method within SomeJob that will be executed. The parameters will be passed to that method.
+3. **Web Interface**
 
-Example 3: Run a Job with Retry Logic, Delays, and Priority
-To dispatch a job with retry logic, delays, and priority:
+Execute the below artisan command, then visit `http://127.0.0.1:8000/dashboard` for view the jobs and their statuses, cancel running jobs, and also retry failed jobs.
+```bash
+    php artisan serve
+```
 
-php
-Copy code
-runBackgroundJob(
-SomeJob::class,        // Job class
-'handle',              // Method name
-['param1' => $value],  // Parameters
-2,                     // Priority (2 = medium priority)
-5,                     // Retry attempts (5 times)
-10,                    // Retry delay in seconds (10 seconds delay between retries)
-120                    // Timeout in seconds (maximum time allowed for the job)
-);
-This will:
+---
+## Running Tests
 
-Attempt to run the job 5 times before considering it failed.
-Add a delay of 10 seconds between retries.
-Set the priority of the job to 2 (medium priority).
-Set the timeout for the job to 120 seconds.
-Configuring Retry Attempts, Delays, and Job Priorities
-Retry Attempts and Delays
-By default, jobs are set to retry up to 3 times with a 5-second delay between each attempt. You can change these defaults when dispatching jobs by specifying values for retryCount and retryDelay.
+**Pre-requisite**
 
-Example: Configure Retry Attempts and Delay
-php
-Copy code
-runBackgroundJob(SomeJob::class, 'handle', ['param1' => $value], 1, 5, 15);
-This will attempt to retry the job 5 times, with a 15-second delay between each retry attempt.
+Ensure PHPUnit is installed via Composer:
+```bash
+    composer require --dev phpunit/phpunit
+```
 
-Job Priority
-Laravel's job queue system allows you to assign priorities to jobs. By default, jobs are set to a priority of 1. You can set different priority levels to control the order in which jobs are processed.
+**Execute Tests**
 
-Example: Set Job Priority
-php
-Copy code
-runBackgroundJob(SomeJob::class, 'handle', ['param1' => $value], 5);
-In this case, the priority is set to 5, meaning this job will be processed after other jobs with a lower priority number.
+Run the included unit tests to verify functionality:
+```bash
+    php artisan test
+```
 
-Timeout Configuration
-Timeouts ensure that jobs don’t run indefinitely. You can set a timeout for each job in seconds using the $timeout parameter.
+---
 
-Example: Set Timeout
-php
-Copy code
-runBackgroundJob(SomeJob::class, 'handle', ['param1' => $value], 1, 3, 5, 60);
-This will set the job’s timeout to 60 seconds. If the job exceeds this time limit, it will be canceled and marked as failed.
+## Roadmap
 
-Advanced Features
-Job Dashboard
-You can create a simple dashboard to view the status of jobs, retry or cancel them, and view logs for debugging.
+**Future Enhancements:**
 
-Example: A simple job dashboard might look like this in a Laravel Blade view.
+* Support for real-time notifications on job status.
+* Integration with external job management tools.
+* Expand test coverage for edge cases.
+* Add Laravel Pint, for linting and code quality management.
 
-Priority Handling
-You can easily assign priorities to different types of jobs, allowing critical tasks to be processed before others.
 
-Example: Dispatch a high-priority job:
+---
 
-php
-Copy code
-runBackgroundJob(SomeJob::class, 'handle', ['param1' => $value], 1); // High priority
-Security Considerations
-Ensure that only authorized users can interact with sensitive job dispatching functionality (e.g., canceling or retrying jobs).
-Use Laravel's built-in authentication and authorization mechanisms to restrict access.
-Assumptions and Limitations
-Assumption: The runBackgroundJob function expects the job class to have a constructor that can accept the parameters being passed to it.
-Limitation: The retry and delay logic is handled within a simple chain of jobs. It doesn't account for more complex failure scenarios, like exponential backoff or delayed retry schedules.
-Improvement: Implement better job failure handling, including exponential backoff and failure notification.
-Contributing
-We welcome contributions to improve the functionality of the background job runner system. Please fork the repository, create a new branch, and submit a pull request with your changes.
+## Contributing
+
+I happily :-) welcome contributions to EasyPeasy Background Job Trigger! Here's how you can help:
+
+1. Fork the repository.
+2. Create a feature branch:
+```bash
+    git checkout -b feature/your-feature-name
+```
+3. Commit your changes:
+```bash
+    git commit -m "Add your descriptive commit message"
+```
+4. Push to your branch:
+```bash
+    git push origin feature/your-feature-name
+```
+5. Open a pull request on GitHub :-)
+
+
+---
+
+## License
+This project is licensed under the MIT License. See the [LICENSE](https://opensource.org/license/mit) file for details.
+
+
+---
+
+## Contact
+For questions or support, feel free to reach out to:
+* Author: Koketso Mabuela
+* Email: glenton9@gmail.com
+* GitHub: KoketsoMabuela92
+
+
+---
+
+Enjoy building with EasyPeasy! 🚀
