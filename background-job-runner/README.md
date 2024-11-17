@@ -62,13 +62,13 @@ Example:
     use App\Jobs\GenerateReportJob;
     
     // Dispatch a simple job
-    runBackgroundJob(GenerateReportJob::class);
+    php artisan job:run "App\Jobs\GenerateReportJob" handle
     
     // Dispatch a job with parameters
-    runBackgroundJob(GenerateReportJob::class, null, ['param1' => 'value', 'param2' => 42]);
+    php artisan job:run "App\Jobs\GenerateReportJob" handle [] 1 3 5
     
     // Dispatch a job with retry logic
-    runBackgroundJob(GenerateReportJob::class, null, [], priority: 1, retryCount: 3, retryDelay: 5);
+    php artisan job:run "App\Jobs\GenerateReportJob" handle [] 1 3 5
 ```
 
 2. **Logging**
